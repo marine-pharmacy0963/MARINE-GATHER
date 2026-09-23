@@ -366,15 +366,19 @@ function publicEnhanceScript(){
  if(adminStart<0||renderStart<0||normalizeStart<0)throw Error("追加表示処理の分離に失敗しました。");
  return `<script id="marine-enhance-v6-public">${source.slice(0,adminStart)}${source.slice(renderStart,normalizeStart)}\n})();<\/script>`;
 }
+function publicLogoScript(){
+ return `<script id="marine-logo-public-v9">(function(){"use strict";function syncPublicLogo(){if(typeof config!=="object"||!config.assets)return;const logo=typeof safeImage==="function"&&safeImage(config.assets.logo)?config.assets.logo:config.assets.shell;const custom=typeof safeImage==="function"&&safeImage(config.assets.logo);const brand=document.getElementById("brand-shell"),center=document.getElementById("center-shell");if(brand&&logo)brand.src=logo;if(center&&logo)center.src=logo;document.querySelector(".brand")?.classList.toggle("logo-mode",!!custom);document.querySelector(".center")?.classList.toggle("logo-mode",!!custom)}syncPublicLogo();window.addEventListener("load",syncPublicLogo);window.addEventListener("pageshow",syncPublicLogo)})();<\/script>`;
+}
 function auditedPublicHTML(){
  let html=(new TextDecoder).decode(Uint8Array.from(atob($("public-template").textContent.trim()),c=>c.charCodeAt(0))).replace("__GAME_DATA__",()=>JSON.stringify(config).replace(/</g,"\\u003c"));
  const mainStyle=document.querySelector("head > style")?.outerHTML;if(mainStyle)html=html.replace(/<style>[\s\S]*?<\/style>/,mainStyle);
- html=html.replace(/<script id=["'](?:rules-v2-patch|rules-v2-public|marine-enhance-v6|marine-enhance-v6-public|marine-visual-sync-v7|marine-public-export-v8)["'][^>]*>[\s\S]*?<\/script>/g,"");
+ html=html.replace(/<script id=["'](?:rules-v2-patch|rules-v2-public|marine-enhance-v6|marine-enhance-v6-public|marine-visual-sync-v7|marine-public-export-v8|marine-logo-public-v9)["'][^>]*>[\s\S]*?<\/script>/g,"");
  html=html.replace(/<style id=["'](?:marine-enhance-v6-style|marine-visual-sync-v7-style)["'][^>]*>[\s\S]*?<\/style>/g,"");
  html=upsert(html,"marine-enhance-v6-style",$("marine-enhance-v6-style").outerHTML,"</head>");
  html=upsert(html,"marine-visual-sync-v7-style",$("marine-visual-sync-v7-style").outerHTML,"</head>");
  html=upsert(html,"rules-v2-public",publicRulesScript(),"</body>");
  html=upsert(html,"marine-enhance-v6-public",publicEnhanceScript(),"</body>");
+ html=upsert(html,"marine-logo-public-v9",publicLogoScript(),"</body>");
  return html;
 }
 window.addEventListener("load",()=>{
