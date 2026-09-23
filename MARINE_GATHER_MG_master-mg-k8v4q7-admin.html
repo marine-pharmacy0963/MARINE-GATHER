@@ -310,4 +310,40 @@ window.addEventListener("load",()=>{
 });
 })();
 </script>
+<style id="marine-visual-sync-v7-style">
+/* 大グループはSTEP番号の地色でも識別する */
+.tile .step-position{background:var(--gc,#087aba)!important;border-color:#fff!important;color:#fff!important;text-shadow:0 1px 1px #003b5f99!important;box-shadow:0 1px 4px #003b5f55!important}
+.group-guide-card .guide-step,.group-row .guide-step{background:var(--gc,#087aba)!important;border-color:#fff!important;color:#fff!important;text-shadow:0 1px 1px #003b5f99!important}
+/* 小グループ前半は白基調、後半は全面を明確に色分け */
+.tile.large-g1.small-g1{background:linear-gradient(145deg,#fff 0 72%,#d9f4ff 100%)!important}
+.tile.large-g1.small-g2{background:linear-gradient(145deg,#bfeaff 0%,#83cde9 100%)!important}
+.tile.large-g2.small-g3{background:linear-gradient(145deg,#fff 0 72%,#ffe0ec 100%)!important}
+.tile.large-g2.small-g4{background:linear-gradient(145deg,#ffd0e1 0%,#ee8eb3 100%)!important}
+.tile.large-g3.small-g5{background:linear-gradient(145deg,#fff 0 72%,#fff0ad 100%)!important}
+.tile.large-g3.small-g6{background:linear-gradient(145deg,#ffe89b 0%,#e5b739 100%)!important}
+.tile.small-g2 .name,.tile.small-g4 .name,.tile.small-g6 .name{background:#ffffffe8!important;box-shadow:0 1px 4px #003b5f25}
+.tile.small-g2 .tile-meta span,.tile.small-g4 .tile-meta span,.tile.small-g6 .tile-meta span{background:#fffffff0!important}
+.group-guide-card.small-g2,.group-row.small-g2{background:#a8ddf2!important}.group-guide-card.small-g4,.group-row.small-g4{background:#f4b6ce!important}.group-guide-card.small-g6,.group-row.small-g6{background:#ffd568!important}
+</style>
+<script id="marine-visual-sync-v7">
+(function(){
+"use strict";
+function replaceOrInsert(html,id,outer,anchor){
+ const tag=outer.startsWith("<style")?"style":"script",re=new RegExp(`<${tag} id=["']${id}["'][^>]*>[\\s\\S]*?<\\/${tag}>`);
+ if(re.test(html))return html.replace(re,outer);return html.replace(anchor,outer+anchor);
+}
+function synchronizedPublicHtml(){
+ let html=(new TextDecoder).decode(Uint8Array.from(atob($("public-template").textContent.trim()),c=>c.charCodeAt(0))).replace("__GAME_DATA__",()=>JSON.stringify(config).replace(/</g,"\\u003c"));
+ const mainStyle=document.querySelector("head > style")?.outerHTML;
+ if(mainStyle)html=html.replace(/<style>[\s\S]*?<\/style>/,mainStyle);
+ for(const id of ["rules-v2-patch","marine-ui-v3","marine-enhance-v6","marine-visual-sync-v7"]){const el=$(id);if(el)html=replaceOrInsert(html,id,el.outerHTML,"</body>")}
+ for(const id of ["marine-enhance-v6-style","marine-visual-sync-v7-style"]){const el=$(id);if(el)html=replaceOrInsert(html,id,el.outerHTML,"</head>")}
+ return html;
+}
+window.addEventListener("load",()=>{
+ if(typeof publicHTML==="function"){publicHTML=synchronizedPublicHtml;publicHTML.__v7=true}
+ if(typeof masterHTML==="function"){const previousMaster=masterHTML;masterHTML=function(){let html=previousMaster();for(const id of ["marine-visual-sync-v7-style","marine-visual-sync-v7"]){const el=$(id);if(el)html=replaceOrInsert(html,id,el.outerHTML,id.endsWith("style")?"</head>":"</body>")}return html};masterHTML.__v7=true}
+});
+})();
+</script>
 </body></html>
