@@ -346,4 +346,36 @@ window.addEventListener("load",()=>{
 });
 })();
 </script>
+<script id="marine-public-export-v8">
+(function(){
+"use strict";
+function upsert(html,id,outer,anchor){const tag=outer.startsWith("<style")?"style":"script",re=new RegExp(`<${tag} id=["']${id}["'][^>]*>[\\s\\S]*?<\\/${tag}>`);return re.test(html)?html.replace(re,outer):html.replace(anchor,outer+anchor)}
+function publicRulesScript(){
+ const source=$("rules-v2-patch").textContent,start=source.indexOf("function installAdmin()"),cssStart=source.indexOf("const css=document.createElement('style')");
+ if(start<0||cssStart<0)throw Error("ルール表示処理の分離に失敗しました。");
+ const publicLoad=`window.addEventListener('load',()=>{const nav=document.querySelector('.nav');if(nav&&!$("groups-button")){const b=document.createElement('button');b.id='groups-button';b.textContent='グループ・STEP';b.onclick=showGroupGuide;const anchor=$("settings-button");anchor?.parentNode?.insertBefore(b,anchor)}if(!$('roles-nav-button')){const g=$('groups-button'),b=document.createElement('button');b.id='roles-nav-button';b.textContent='役一覧';b.onclick=()=>$('roles-button')?.click();g?.parentNode?.insertBefore(b,g)}});`;
+ return `<script id="rules-v2-public">${source.slice(0,start)}${publicLoad}${source.slice(cssStart)}<\/script>`;
+}
+function publicEnhanceScript(){
+ const source=$("marine-enhance-v6").textContent,adminStart=source.indexOf("function printRegisteredCards()"),renderStart=source.indexOf("const originalRender=render"),normalizeStart=source.indexOf('if(typeof normalizeConfig===');
+ if(adminStart<0||renderStart<0||normalizeStart<0)throw Error("追加表示処理の分離に失敗しました。");
+ return `<script id="marine-enhance-v6-public">${source.slice(0,adminStart)}${source.slice(renderStart,normalizeStart)}\n})();<\/script>`;
+}
+function auditedPublicHTML(){
+ let html=(new TextDecoder).decode(Uint8Array.from(atob($("public-template").textContent.trim()),c=>c.charCodeAt(0))).replace("__GAME_DATA__",()=>JSON.stringify(config).replace(/</g,"\\u003c"));
+ const mainStyle=document.querySelector("head > style")?.outerHTML;if(mainStyle)html=html.replace(/<style>[\s\S]*?<\/style>/,mainStyle);
+ html=html.replace(/<script id=["'](?:rules-v2-patch|rules-v2-public|marine-enhance-v6|marine-enhance-v6-public|marine-visual-sync-v7|marine-public-export-v8)["'][^>]*>[\s\S]*?<\/script>/g,"");
+ html=html.replace(/<style id=["'](?:marine-enhance-v6-style|marine-visual-sync-v7-style)["'][^>]*>[\s\S]*?<\/style>/g,"");
+ html=upsert(html,"marine-enhance-v6-style",$("marine-enhance-v6-style").outerHTML,"</head>");
+ html=upsert(html,"marine-visual-sync-v7-style",$("marine-visual-sync-v7-style").outerHTML,"</head>");
+ html=upsert(html,"rules-v2-public",publicRulesScript(),"</body>");
+ html=upsert(html,"marine-enhance-v6-public",publicEnhanceScript(),"</body>");
+ return html;
+}
+window.addEventListener("load",()=>{
+ publicHTML=auditedPublicHTML;publicHTML.__v8=true;
+ if(typeof masterHTML==="function"){const previous=masterHTML;masterHTML=function(){let html=previous(),self=$("marine-public-export-v8").outerHTML;return upsert(html,"marine-public-export-v8",self,"</body>")};masterHTML.__v8=true}
+});
+})();
+</script>
 </body></html>
