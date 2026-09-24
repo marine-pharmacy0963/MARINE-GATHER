@@ -235,14 +235,16 @@ document.getElementById("board").addEventListener("click",e=>{const tile=e.targe
   tileHtml=function(tile,size="",extra=""){
     const c=config.characters[tile.kind]||{},lg=Number(c.largeGroup)||1,sg=Number(c.smallGroup)||1,step=stepLabel(c);
     let html=priorTileHtml(tile,size,extra);
-    if(!html.includes('tile-meta')) html=html.replace('</div><span class="name">',`</div><span class="name">`).replace('</span></div>',`</span><span class="tile-meta art-meta ${tile.art?"art-b":"art-a"}"><span class="art-value">${tile.art?"B":"A"}</span><span class="small-group-value">小G${sg}</span></span></div>`);
+    if(!html.includes('tile-meta')) html=html.replace('</div><span class="name">',`</div><span class="name">`).replace('</span></div>',`</span><span class="tile-meta art-meta ${tile.art?"art-b":"art-a"}"><span class="art-value">${tile.art?"B":"A"}</span></span></div>`);
     return html;
   };
   function detailData(tile){const c=config.characters[tile.kind]||{},lg=Number(c.largeGroup)||1,sg=Number(c.smallGroup)||1;return{c,lg,sg,step:stepLabel(c)}}
   window.showMarineTileDetail=function(tile){
     const d=detailData(tile),content=`<div class="discard-detail-grid"><div class="discard-zoom">${tileHtml(tile)}</div><div class="discard-detail-list"><b>${esc(d.c.name||"")}</b><span class="info-chip">絵柄 ${tile.art?"B":"A"}</span><span class="info-chip">大グループ ${d.lg}</span><span class="info-chip">小グループ ${d.sg}</span>${d.step?`<span class="info-chip">${esc(d.step)}</span>`:""}</div></div>`;
-    if(matchMedia('(max-width:1100px)').matches)return openModal("カードの情報",content);
-    const host=document.getElementById('tile-inspector-body');if(host)host.innerHTML=content;
+    let viewer=document.getElementById('marine-card-viewer');
+    if(!viewer){viewer=document.createElement('dialog');viewer.id='marine-card-viewer';viewer.innerHTML='<div class="marine-card-viewer-head"><strong>カードの情報</strong><button type="button" aria-label="閉じる">×</button></div><div class="marine-card-viewer-body"></div>';document.body.append(viewer);viewer.querySelector('button').onclick=()=>viewer.close();viewer.addEventListener('click',e=>{if(e.target===viewer)viewer.close()})}
+    viewer.querySelector('.marine-card-viewer-body').innerHTML=content;
+    if(!viewer.open)viewer.showModal();
   };
   const oldRender=render;render=function(){
     oldRender();
@@ -345,7 +347,6 @@ window.addEventListener("load",()=>{
 .tile-meta.art-meta span{display:block;padding:2px 6px!important;border-radius:999px!important;font-size:9px!important;line-height:1!important;font-weight:1000!important;text-align:center;white-space:nowrap}
 .tile-meta.art-meta .art-value{min-width:22px;border:1px solid #7fc6df;background:#dff7ff!important;color:#07557d!important;font-size:10px!important}
 .tile-meta.art-meta.art-b .art-value{border-color:#e99abb;background:#ffe1ee!important;color:#9f2459!important}
-.tile-meta.art-meta .small-group-value{border:1px solid #b7d7e3;background:#fff!important;color:#315d72!important}
 .river .tile .group-stack{display:none!important}
 .river .tile.mini{justify-content:space-between!important;padding:2px 1px!important}
 .river .tile.mini .face{flex:1 1 auto;height:auto!important;min-height:0!important;width:100%}
@@ -354,6 +355,7 @@ window.addEventListener("load",()=>{
 .river .tile.mini .tile-meta.art-meta .art-value{font-size:8px!important}
 .group-guide-card.small-g2,.group-row.small-g2{background:#a8ddf2!important}.group-guide-card.small-g4,.group-row.small-g4{background:#f4b6ce!important}.group-guide-card.small-g6,.group-row.small-g6{background:#ffd568!important}
 .guide-character-images{display:flex;justify-content:center;align-items:center;gap:4px;margin:2px 0 7px}.guide-character-images .tile.mini{width:48px!important;height:66px!important;flex:0 0 auto}.guide-character-images .tile.mini .face{height:68%}.group-guide-card{display:flex!important;flex-direction:column;align-items:center;justify-content:flex-start;min-height:112px}.group-guide-card>b{display:flex;align-items:center;gap:4px;text-align:center}.step-guide-with-images{align-items:stretch!important}.step-guide-position{display:flex!important;flex-direction:column;align-items:center;gap:5px;padding:7px;border-radius:12px;background:#ffffffb8}.step-guide-character{display:flex;flex-direction:column;align-items:center;gap:3px}.step-guide-character strong{font-size:11px;text-align:center}.step-guide-position>.guide-step{margin-bottom:1px}@media(max-width:700px){.group-guide-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.guide-character-images .tile.mini{width:42px!important;height:58px!important}.step-guide-with-images{grid-template-columns:1fr!important}.step-guide-position{width:100%}.river .tile.mini{width:30px!important;height:42px!important}}
+#marine-card-viewer{width:min(560px,94vw);max-height:90dvh;padding:0;overflow:auto;z-index:2147483647;border:3px solid #fff;border-radius:26px;background:linear-gradient(145deg,#fff,#ddf7ff);box-shadow:0 28px 90px #002c4f99}#marine-card-viewer::backdrop{background:#002d4da8;backdrop-filter:blur(4px)}.marine-card-viewer-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:#fff;border-bottom:2px solid #bfe6f2}.marine-card-viewer-head strong{font-size:18px}.marine-card-viewer-head button{width:44px;height:44px;padding:0;border-radius:50%;font-size:25px}.marine-card-viewer-body{padding:16px}.marine-card-viewer-body .discard-detail-grid{grid-template-columns:minmax(150px,230px) 1fr}.marine-card-viewer-body .discard-zoom .tile{width:210px;height:286px}.marine-card-viewer-body .discard-zoom .tile .face{height:68%}@media(max-width:600px){.marine-card-viewer-body .discard-detail-grid{grid-template-columns:1fr}.marine-card-viewer-body .discard-detail-list{text-align:center}.marine-card-viewer-body .discard-zoom{display:flex;justify-content:center}.marine-card-viewer-body .discard-zoom .tile{width:min(220px,68vw);height:min(300px,92vw)}}
 </style>
 <script id="marine-visual-sync-v7">
 (function(){
