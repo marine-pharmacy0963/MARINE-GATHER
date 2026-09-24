@@ -316,7 +316,7 @@ function enhanceAdmin(){
  const scroll=document.querySelector(".admin-scroll");if(scroll&&!$("cpu-name-fields")){const box=document.createElement("details");box.className="editor-card";box.open=true;box.innerHTML=`<summary>CPUの名前</summary><p class="print-note">対戦画面・結果・ログに反映します。</p><div id="cpu-name-fields" class="cpu-name-grid"></div>`;scroll.prepend(box);config.cpuNames.forEach((v,i)=>{const l=document.createElement("label");l.textContent=`CPU ${i+1}`;const input=document.createElement("input");input.maxLength=24;input.value=v;input.oninput=()=>{config.cpuNames[i]=input.value.trim()||cpuDefaults[i];syncCpuNames();changed()};l.append(input);$("cpu-name-fields").append(l)})}
 }
 const originalAdmin=adminScreen;adminScreen=function(){originalAdmin();enhanceAdmin()};
-const originalRender=render;render=function(){syncCpuNames();originalRender();detectCpuDiscard();bindLongPress();if(game){document.querySelectorAll("#opponents .opponent").forEach((el,i)=>{const badge=el.querySelector(".player-badge");if(badge){const avatar=badge.querySelector(".avatar,.opponent-avatar-img");badge.innerHTML="";if(avatar)badge.append(avatar);badge.append(document.createTextNode(" "+config.cpuNames[i]))}});document.querySelectorAll("#scores .score-row span").forEach((el,i)=>el.textContent=i===0?"あなた":config.cpuNames[i-1]);if(!$("hand-longpress-hint")){const p=document.createElement("p");p.id="hand-longpress-hint";p.className="longpress-hint";p.textContent="カードを長押しすると、グループ・STEPの詳細を確認できます。";$("hand").after(p)}}};
+const originalRender=render;render=function(){syncCpuNames();originalRender();detectCpuDiscard();if(game){document.querySelectorAll("#opponents .opponent").forEach((el,i)=>{const badge=el.querySelector(".player-badge");if(badge){const avatar=badge.querySelector(".avatar,.opponent-avatar-img");badge.innerHTML="";if(avatar)badge.append(avatar);badge.append(document.createTextNode(" "+config.cpuNames[i]))}});document.querySelectorAll("#scores .score-row span").forEach((el,i)=>el.textContent=i===0?"あなた":config.cpuNames[i-1]);if(!$("hand-longpress-hint")){const p=document.createElement("p");p.id="hand-longpress-hint";p.className="longpress-hint";p.textContent="カードを長押し、またはダブルタップすると詳細を確認できます。";$("hand").after(p)}}};
 
 if(typeof normalizeConfig==="function"){const oldNormalize=normalizeConfig;normalizeConfig=function(raw){const out=oldNormalize(raw);out.cpuNames=cleanNames(raw?.cpuNames);return out}}
 window.addEventListener("load",()=>{
@@ -381,10 +381,15 @@ function publicEnhanceScript(){
 function publicLogoScript(){
  return `<script id="marine-logo-public-v9">(function(){"use strict";function syncPublicLogo(){if(typeof config!=="object"||!config.assets)return;const logo=typeof safeImage==="function"&&safeImage(config.assets.logo)?config.assets.logo:config.assets.shell;const custom=typeof safeImage==="function"&&safeImage(config.assets.logo);const brand=document.getElementById("brand-shell"),center=document.getElementById("center-shell");if(brand&&logo)brand.src=logo;if(center&&logo)center.src=logo;document.querySelector(".brand")?.classList.toggle("logo-mode",!!custom);document.querySelector(".center")?.classList.toggle("logo-mode",!!custom)}if(typeof applyTheme==="function"&&!applyTheme.__marineLogo){const baseApplyTheme=applyTheme;applyTheme=function(){baseApplyTheme();syncPublicLogo()};applyTheme.__marineLogo=true}syncPublicLogo();window.addEventListener("load",syncPublicLogo);window.addEventListener("pageshow",syncPublicLogo)})();<\/script>`;
 }
+function publicCardDetailScript(){
+ const source=$("marine-card-detail-v10").textContent,cut=source.indexOf("// MASTER_ONLY");
+ if(cut<0)throw Error("カード詳細処理の分離に失敗しました。");
+ return `<script id="marine-card-detail-v10-public">${source.slice(0,cut)}\n})();<\/script>`;
+}
 function auditedPublicHTML(){
  let html=(new TextDecoder).decode(Uint8Array.from(atob($("public-template").textContent.trim()),c=>c.charCodeAt(0))).replace("__GAME_DATA__",()=>JSON.stringify(config).replace(/</g,"\\u003c"));
  const mainStyle=document.querySelector("head > style")?.outerHTML;if(mainStyle)html=html.replace(/<style>[\s\S]*?<\/style>/,mainStyle);
- html=html.replace(/<script id=["'](?:rules-v2-patch|rules-v2-public|marine-enhance-v6|marine-enhance-v6-public|marine-visual-sync-v7|marine-public-export-v8|marine-logo-public-v9)["'][^>]*>[\s\S]*?<\/script>/g,"");
+ html=html.replace(/<script id=["'](?:rules-v2-patch|rules-v2-public|marine-enhance-v6|marine-enhance-v6-public|marine-visual-sync-v7|marine-public-export-v8|marine-logo-public-v9|marine-card-detail-v10|marine-card-detail-v10-public)["'][^>]*>[\s\S]*?<\/script>/g,"");
  html=html.replace(/<style id=["'](?:marine-enhance-v6-style|marine-visual-sync-v7-style)["'][^>]*>[\s\S]*?<\/style>/g,"");
  html=upsert(html,"marine-enhance-v6-style",$("marine-enhance-v6-style").outerHTML,"</head>");
  html=upsert(html,"marine-visual-sync-v7-style",$("marine-visual-sync-v7-style").outerHTML,"</head>");
@@ -392,11 +397,67 @@ function auditedPublicHTML(){
  html=upsert(html,"marine-ui-v3",$("marine-ui-v3").outerHTML,"</body>");
  html=upsert(html,"marine-enhance-v6-public",publicEnhanceScript(),"</body>");
  html=upsert(html,"marine-logo-public-v9",publicLogoScript(),"</body>");
+ html=upsert(html,"marine-card-detail-v10-public",publicCardDetailScript(),"</body>");
  return html;
 }
 window.addEventListener("load",()=>{
  publicHTML=auditedPublicHTML;publicHTML.__v8=true;
  if(typeof masterHTML==="function"){const previous=masterHTML;masterHTML=function(){let html=previous(),self=$("marine-public-export-v8").outerHTML;return upsert(html,"marine-public-export-v8",self,"</body>")};masterHTML.__v8=true}
+});
+})();
+</script>
+<script id="marine-card-detail-v10">
+(function(){
+"use strict";
+let holdTimer=0,holdTile=null,holdOpened=false;
+function cardFromElement(el){
+ let kind=Number(el?.dataset.kind),art=Number(el?.dataset.art),id=el?.dataset.id||"detail";
+ if(Number.isInteger(kind)&&Number.isInteger(art))return{kind,art,id};
+ if(!el||!game?.players)return null;
+ if(el.closest("#hand")){
+  const nodes=[...document.querySelectorAll("#hand .tile")],index=nodes.indexOf(el),cards=game.players[0].hand.slice().sort((a,b)=>a.kind-b.kind||a.art-b.art||String(a.id).localeCompare(String(b.id))),tile=cards[index];
+  return Number.isInteger(tile?.kind)&&Number.isInteger(tile?.art)?tile:null;
+ }
+ const river=el.closest(".river");if(!river)return null;
+ let player=0;const opponent=el.closest("#opponents .opponent");
+ if(opponent){const index=[...document.querySelectorAll("#opponents .opponent")].indexOf(opponent);if(index>=0)player=index+1}
+ const index=[...river.querySelectorAll(".tile")].indexOf(el),entry=game.players[player]?.river?.[index],tile=entry?.tile||entry;
+ return Number.isInteger(tile?.kind)&&Number.isInteger(tile?.art)?tile:null;
+}
+function openCard(el){
+ const tile=cardFromElement(el);if(!tile)return false;
+ if(typeof showMarineTileDetail==="function")showMarineTileDetail(tile);
+ else if(typeof openModal==="function")openModal("カードの情報",`<div class="discard-zoom">${tileHtml(tile)}</div>`,true);
+ return true;
+}
+function stopHold(){clearTimeout(holdTimer);holdTimer=0;holdTile=null}
+document.addEventListener("pointerdown",e=>{
+ const el=e.target.closest?.("#hand .tile");if(!el)return;
+ stopHold();holdTile=el;holdOpened=false;
+ holdTimer=setTimeout(()=>{if(holdTile&&openCard(holdTile)){holdOpened=true;navigator.vibrate?.(25)}},320);
+},true);
+document.addEventListener("pointerup",stopHold,true);
+document.addEventListener("pointercancel",stopHold,true);
+document.addEventListener("click",e=>{
+ const river=e.target.closest?.(".river .tile");
+ if(river){e.preventDefault();e.stopImmediatePropagation();openCard(river);return}
+ const hand=e.target.closest?.("#hand .tile");
+ if(hand&&holdOpened){e.preventDefault();e.stopImmediatePropagation();holdOpened=false}
+},true);
+document.addEventListener("dblclick",e=>{
+ const hand=e.target.closest?.("#hand .tile");if(!hand)return;
+ e.preventDefault();e.stopImmediatePropagation();openCard(hand);
+},true);
+document.addEventListener("contextmenu",e=>{
+ if(e.target.closest?.("#hand .tile,.river .tile")){e.preventDefault();e.stopImmediatePropagation()}
+},true);
+document.addEventListener("dragstart",e=>{if(e.target.closest?.("#hand .tile,.river .tile"))e.preventDefault()},true);
+// MASTER_ONLY
+window.addEventListener("load",()=>{
+ if(typeof masterHTML!=="function"||masterHTML.__cardDetailV10)return;
+ const previous=masterHTML;
+ masterHTML=function(){const html=previous(),self=document.getElementById("marine-card-detail-v10").outerHTML,re=/<script id=["']marine-card-detail-v10["'][^>]*>[\s\S]*?<\/script>/;return re.test(html)?html.replace(re,self):html.replace("</body>",self+"</body>")};
+ masterHTML.__cardDetailV10=true;
 });
 })();
 </script>
