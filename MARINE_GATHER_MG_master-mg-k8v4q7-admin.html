@@ -250,8 +250,19 @@ document.getElementById("board").addEventListener("click",e=>{const tile=e.targe
     const alert=document.querySelector('.pon-alert-label');if(alert)alert.textContent='SAME！できます';
     document.querySelectorAll('.river .tile').forEach(el=>{el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label',(el.title||'捨て牌')+'の詳細を表示')});
   };
+  function riverTileFromElement(el){
+    let kind=Number(el.dataset.kind),art=Number(el.dataset.art),id=el.dataset.id||'detail';
+    if(Number.isInteger(kind)&&Number.isInteger(art))return{kind,art,id};
+    if(!game?.players)return null;
+    let player=0,river=el.closest('.river');
+    const opponent=el.closest('#opponents .opponent');
+    if(opponent){const opponents=[...document.querySelectorAll('#opponents .opponent')],index=opponents.indexOf(opponent);if(index>=0)player=index+1}
+    const tiles=river?[...river.querySelectorAll('.tile')]:[],index=tiles.indexOf(el),entry=game.players[player]?.river?.[index];
+    const tile=entry?.tile||entry;
+    return Number.isInteger(tile?.kind)&&Number.isInteger(tile?.art)?{kind:tile.kind,art:tile.art,id:tile.id||id}:null;
+  }
   const board=document.getElementById('board');
-  if(board){board.addEventListener('click',e=>{const el=e.target.closest('.river .tile');if(!el)return;e.stopImmediatePropagation();const kind=Number(el.dataset.kind),art=Number(el.dataset.art);if(Number.isInteger(kind)&&Number.isInteger(art))showMarineTileDetail({kind,art,id:el.dataset.id||'detail'})},true);board.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.river .tile')){e.preventDefault();e.target.click()}},true)}
+  if(board){board.addEventListener('click',e=>{const el=e.target.closest('.river .tile');if(!el)return;e.stopImmediatePropagation();const tile=riverTileFromElement(el);if(tile)showMarineTileDetail(tile)},true);board.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.river .tile')){e.preventDefault();e.target.click()}},true)}
   render();
 })();
 </script>
@@ -377,6 +388,7 @@ function auditedPublicHTML(){
  html=upsert(html,"marine-enhance-v6-style",$("marine-enhance-v6-style").outerHTML,"</head>");
  html=upsert(html,"marine-visual-sync-v7-style",$("marine-visual-sync-v7-style").outerHTML,"</head>");
  html=upsert(html,"rules-v2-public",publicRulesScript(),"</body>");
+ html=upsert(html,"marine-ui-v3",$("marine-ui-v3").outerHTML,"</body>");
  html=upsert(html,"marine-enhance-v6-public",publicEnhanceScript(),"</body>");
  html=upsert(html,"marine-logo-public-v9",publicLogoScript(),"</body>");
  return html;
